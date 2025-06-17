@@ -6,90 +6,181 @@ DockYard is a simple web application that helps you discover and install Docker 
 
 *   Browse Docker applications from multiple template sources.
 *   View application details: title, description, logo.
-*   Install container-based applications directly through the Docker API.
+*   Install container-based applications directly through the Docker API (Type 2 templates).
 *   Configurable template source URLs.
 *   Containerized for easy deployment.
+*   Periodic background updates for templates.
 
 ## Getting Started
 
+This guide will help you get DockYard running on your system.
+
 ### Prerequisites
 
-*   Docker installed and running on your system.
+*   A Linux system (this guide focuses on Linux, but Docker can be installed on macOS and Windows too).
+*   Basic familiarity with the command line.
 
-### Building DockYard (Optional)
+### Linux Installation Guide
 
-If you want to build the DockYard image yourself:
+Follow these steps to install Docker and run DockYard on your Linux system.
 
-1.  Clone this repository (if applicable, or ensure you have the source code).
-2.  Navigate to the project root directory (where the Dockerfile is).
-3.  Build the Docker image:
+**1. Check if Docker is Installed**
+
+Open your terminal and run:
+\`\`\`bash
+docker --version
+\`\`\`
+If Docker is installed, you'll see its version. If not, you'll likely get a "command not found" error, and you should proceed to the next step.
+
+**2. Install Docker Engine**
+
+It's highly recommended to follow the **official Docker installation guide** for your specific Linux distribution to ensure you get the latest and most secure version:
+*   **Official Docker Installation Docs:** [https://docs.docker.com/engine/install/](https://docs.docker.com/engine/install/)
+
+Below are example commands for some common distributions. **Please prefer the official documentation linked above.**
+
+*   **For Debian/Ubuntu-based systems:**
     \`\`\`bash
-    docker build -t dockyard .
+    # Update package lists
+    sudo apt-get update
+
+    # Install prerequisite packages
+    sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common
+
+    # Add Docker's official GPG key
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+
+    # Add Docker's stable repository
+    sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+
+    # Update package lists again (after adding new repo)
+    sudo apt-get update
+
+    # Install Docker Engine
+    sudo apt-get install -y docker-ce docker-ce-cli containerd.io
     \`\`\`
 
-### Running DockYard
+*   **For Fedora-based systems:**
+    \`\`\`bash
+    # Uninstall old versions (if necessary)
+    # sudo dnf remove docker docker-client docker-client-latest docker-common docker-latest docker-latest-logrotate docker-logrotate docker-selinux docker-engine-selinux docker-engine
 
-To run the DockYard container:
+    # Set up the Docker repository
+    sudo dnf -y install dnf-plugins-core
+    sudo dnf config-manager --add-repo https://download.docker.com/linux/fedora/docker-ce.repo
 
-\`\`\`bash
-docker run -d \
-    -p 5001:5001 \
-    -v /var/run/docker.sock:/var/run/docker.sock \
-    --name dockyard \
-    dockyard
-    # Image name might be different if you tagged it differently or pulled from a registry
-\`\`\`
+    # Install Docker Engine
+    sudo dnf install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+    \`\`\`
 
-**Explanation of options:**
+**3. Manage Docker as a non-root user (Recommended)**
 
-*   \`-d\`: Run the container in detached mode.
-*   \`-p 5001:5001\`: Map port 5001 on your host to port 5001 in the container (where the DockYard app runs).
-*   \`-v /var/run/docker.sock:/var/run/docker.sock\`: **Crucial!** This mounts the host's Docker socket into the DockYard container, allowing it to manage other Docker containers.
-*   \`--name dockyard\`: Assign a name to the container for easy management.
-*   \`dockyard\`: The name of the image to run.
-
-### Configuring Template Sources
-
-DockYard fetches application templates from URLs specified in the \`TEMPLATE_SOURCES_URL\` environment variable. You can customize this when running the container.
-
-The \`TEMPLATE_SOURCES_URL\` should be a comma-separated list of URLs pointing to Portainer v2 compatible template JSON files.
-
-**Example with a custom template source:**
+To run Docker commands without needing \`sudo\` every time:
 
 \`\`\`bash
-docker run -d \
+# Create the 'docker' group (it might already exist)
+sudo groupadd docker
+
+# Add your user to the 'docker' group
+sudo usermod -aG docker $USER
+\`\`\`
+**Important:** You'll need to log out and log back in for this group change to take effect. Alternatively, you can activate the changes for the current terminal session by running \`newgrp docker\` (you might need to open a new terminal).
+
+**4. Start and Enable Docker Service**
+
+Ensure the Docker service is running and enabled to start on boot:
+
+\`\`\`bash
+# Start the Docker service
+sudo systemctl start docker
+
+# Enable Docker to start on system boot
+sudo systemctl enable docker
+
+# Check the Docker service status (optional)
+sudo systemctl status docker
+\`\`\`
+You should see that the service is active (running).
+
+**5. Obtain the DockYard Application Code**
+
+If you haven't already, get the DockYard source code. If this is a Git repository:
+\`\`\`bash
+# Replace with the actual repository URL if applicable
+# git clone https://your-git-repository-url/dockyard.git
+# cd dockyard
+\`\`\`
+For now, assuming you have the source code in your current directory.
+
+**6. Build the DockYard Docker Image**
+
+Navigate to the root directory of the DockYard project (where the \`Dockerfile\` is located) and run:
+\`\`\`bash
+docker build -t dockyard .
+\`\`\`
+This command builds the Docker image for DockYard and tags it as \`dockyard\`.
+
+**7. Run the DockYard Container**
+
+Once the image is built, you can run DockYard using the following command:
+
+\`\`\`bash
+docker run -d --rm \
     -p 5001:5001 \
     -v /var/run/docker.sock:/var/run/docker.sock \
-    -e TEMPLATE_SOURCES_URL="https://raw.githubusercontent.com/Qballjos/portainer_templates/master/Template/template.json,https://another.example.com/templates.json" \
-    --name dockyard \
+    -e TEMPLATE_SOURCES_URL="https://raw.githubusercontent.com/Qballjos/portainer_templates/master/Template/template.json" \
+    # IMPORTANT: Always change the SECRET_KEY below to a unique, strong random string!
+    # Do NOT use this example value in a production environment.
+    -e SECRET_KEY="YOUR_UNIQUE_STRONG_SECRET_KEY_HERE" \
+    --name dockyard-app \
     dockyard
 \`\`\`
 
-If \`TEMPLATE_SOURCES_URL\` is not provided, it defaults to: \`https://raw.githubusercontent.com/Qballjos/portainer_templates/master/Template/template.json\`.
+**Explanation of the \`docker run\` command:**
+*   \`-d\`: Run in detached mode (in the background).
+*   \`--rm\`: Automatically remove the container when it exits (useful for testing and keeping things clean).
+*   \`-p 5001:5001\`: Map port 5001 on your host to port 5001 in the container (DockYard listens on this port).
+*   \`-v /var/run/docker.sock:/var/run/docker.sock\`: **Crucial!** This mounts the host's Docker socket into the DockYard container, allowing DockYard to manage other Docker containers on your system.
+*   \`-e TEMPLATE_SOURCES_URL=...\`: Sets the URL (or comma-separated URLs) for the application templates.
+*   \`-e SECRET_KEY=...\`: **Critical Security Note!** You **MUST** change this to a strong, unique secret key for your instance. The Flask \`SECRET_KEY\` is used for session management, signing cookies, and other security-related functions.
+*   \`--name dockyard-app\`: Assigns a recognizable name to your running container.
+*   \`dockyard\`: The name of the Docker image to run (which you built in the previous step).
+
+*(For users on macOS or Windows, please refer to the official Docker Desktop documentation for installation, then proceed from step 5, adapting paths and commands as necessary.)*
 
 ### Accessing DockYard
 
-Once running, open your web browser and navigate to \`http://localhost:5001\`.
+Once the DockYard container is running, open your web browser and navigate to:
+\`http://localhost:5001\`
+
+You should see the DockYard interface listing available applications.
+
+### Configuring Template Sources
+
+DockYard fetches application templates from URLs specified in the \`TEMPLATE_SOURCES_URL\` environment variable. You can customize this when running the container by modifying the \`-e TEMPLATE_SOURCES_URL=...\` part of the \`docker run\` command.
+
+The \`TEMPLATE_SOURCES_URL\` should be a comma-separated list of URLs pointing to Portainer v2 compatible template JSON files.
+
+**Example with multiple template sources:**
+\`\`\`bash
+docker run -d --rm \
+    -p 5001:5001 \
+    -v /var/run/docker.sock:/var/run/docker.sock \
+    -e TEMPLATE_SOURCES_URL="https://raw.githubusercontent.com/Qballjos/portainer_templates/master/Template/template.json,https://another.example.com/templates.json" \
+    # IMPORTANT: Always change the SECRET_KEY below to a unique, strong random string!
+    -e SECRET_KEY="YOUR_UNIQUE_STRONG_SECRET_KEY_HERE" \
+    --name dockyard-app \
+    dockyard
+\`\`\`
+If \`TEMPLATE_SOURCES_URL\` is not provided, it defaults to the one specified in the Dockerfile (or \`config.py\`).
 
 ## How It Works
 
 DockYard consists of:
-
 *   A Flask web application (Python).
-*   A template manager that fetches and parses JSON template files.
+*   A template manager that fetches, parses, and caches JSON template files.
 *   A Docker manager that interacts with the Docker daemon to pull images and run containers.
-
-## Future Development (Ideas)
-
-*   Support for Docker Compose (Stack) templates (Portainer type 1).
-*   User authentication.
-*   More detailed container status and management.
-*   Periodic background updates for templates.
-*   AI-powered discovery of new template sources (as per original request).
-
-## Contributing
-
-Contributions are welcome! Please feel free to fork the repository, make changes, and submit a pull request.
+*   An APScheduler instance for periodic background updates of templates.
 
 ## Manual Testing Guide
 
@@ -164,3 +255,15 @@ To manually test the core functionalities of DockYard:
     *   Stop any containers installed by DockYard during testing.
 
 This guide helps ensure the main features are working as intended.
+
+## Future Development (Ideas)
+
+*   Support for Docker Compose (Stack) templates (Portainer type 1).
+*   User authentication.
+*   More detailed container status and management.
+*   Periodic background updates for templates.
+*   AI-powered discovery of new template sources (as per original request).
+
+## Contributing
+
+Contributions are welcome! Please feel free to fork the repository, make changes, and submit a pull request.
