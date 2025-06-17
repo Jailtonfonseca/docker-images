@@ -5,11 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ title }}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .header-nav { margin-top: 10px; margin-bottom: 10px; }
+        .header-nav a { margin: 0 15px; text-decoration: none; color: #fff; font-weight: bold; }
+        .header-nav a:hover { text-decoration: underline; }
+    </style>
 </head>
 <body>
     <header>
         <h1>Welcome to DockYard</h1>
         <p>Browse and install Docker applications easily.</p>
+        <nav class="header-nav">
+            <a href="{{ url_for('index') }}">Home</a>
+            <a href="{{ url_for('settings_page') }}">Settings</a>
+        </nav>
     </header>
     <main>
         <h2>Available Applications</h2>
@@ -42,13 +51,12 @@
 
         function showMessage(text, type = 'info') {
             messageArea.textContent = text;
-            messageArea.className = 'message-area'; // Reset classes
+            messageArea.className = 'message-area';
             if (type === 'success') {
                 messageArea.classList.add('success');
             } else if (type === 'error') {
                 messageArea.classList.add('error');
             }
-            // Message will auto-hide after some time
             setTimeout(() => {
                 messageArea.textContent = '';
                 messageArea.className = 'message-area';
@@ -61,7 +69,7 @@
                 const templateTitle = button.getAttribute('data-template-title');
 
                 showMessage(\`Starting installation for \${templateTitle}...\`, 'info');
-                button.disabled = true; // Disable button during request
+                button.disabled = true;
 
                 fetch('/install_app', {
                     method: 'POST',
@@ -83,7 +91,7 @@
                     showMessage(\`Request failed for \${templateTitle}: \${error}\`, 'error');
                 })
                 .finally(() => {
-                    button.disabled = false; // Re-enable button
+                    button.disabled = false;
                 });
             });
         });
