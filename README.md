@@ -27,9 +27,9 @@ Follow these steps to install Docker and run DockYard on your Linux system.
 **1. Check if Docker is Installed**
 
 Open your terminal and run:
-```bash
+\`\`\`bash
 docker --version
-```
+\`\`\`
 If Docker is installed, you'll see its version. If not, you'll likely get a "command not found" error, and you should proceed to the next step.
 
 **2. Install Docker Engine**
@@ -40,7 +40,7 @@ It's highly recommended to follow the **official Docker installation guide** for
 Below are example commands for some common distributions. **Please prefer the official documentation linked above.**
 
 *   **For Debian/Ubuntu-based systems:**
-    ```bash
+    \`\`\`bash
     # Update package lists
     sudo apt-get update
 
@@ -58,10 +58,10 @@ Below are example commands for some common distributions. **Please prefer the of
 
     # Install Docker Engine
     sudo apt-get install -y docker-ce docker-ce-cli containerd.io
-    ```
+    \`\`\`
 
 *   **For Fedora-based systems:**
-    ```bash
+    \`\`\`bash
     # Uninstall old versions (if necessary)
     # sudo dnf remove docker docker-client docker-client-latest docker-common docker-latest docker-latest-logrotate docker-logrotate docker-selinux docker-engine-selinux docker-engine
 
@@ -71,26 +71,26 @@ Below are example commands for some common distributions. **Please prefer the of
 
     # Install Docker Engine
     sudo dnf install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
-    ```
+    \`\`\`
 
 **3. Manage Docker as a non-root user (Recommended)**
 
-To run Docker commands without needing `sudo` every time:
+To run Docker commands without needing \`sudo\` every time:
 
-```bash
+\`\`\`bash
 # Create the 'docker' group (it might already exist)
 sudo groupadd docker
 
 # Add your user to the 'docker' group
 sudo usermod -aG docker $USER
-```
-**Important:** You'll need to log out and log back in for this group change to take effect. Alternatively, you can activate the changes for the current terminal session by running `newgrp docker` (you might need to open a new terminal).
+\`\`\`
+**Important:** You'll need to log out and log back in for this group change to take effect. Alternatively, you can activate the changes for the current terminal session by running \`newgrp docker\` (you might need to open a new terminal).
 
 **4. Start and Enable Docker Service**
 
 Ensure the Docker service is running and enabled to start on boot:
 
-```bash
+\`\`\`bash
 # Start the Docker service
 sudo systemctl start docker
 
@@ -99,50 +99,52 @@ sudo systemctl enable docker
 
 # Check the Docker service status (optional)
 sudo systemctl status docker
-```
+\`\`\`
 You should see that the service is active (running).
 
 **5. Obtain the DockYard Application Code**
 
 If you haven't already, get the DockYard source code. If this is a Git repository:
-```bash
+\`\`\`bash
 # Replace with the actual repository URL if applicable
 # git clone https://your-git-repository-url/dockyard.git
 # cd dockyard
-```
+\`\`\`
 For now, assuming you have the source code in your current directory.
 
 **6. Build the DockYard Docker Image**
 
-Navigate to the root directory of the DockYard project (where the `Dockerfile` is located) and run:
-```bash
+Navigate to the root directory of the DockYard project (where the \`Dockerfile\` is located) and run:
+\`\`\`bash
 docker build -t dockyard .
-```
-This command builds the Docker image for DockYard and tags it as `dockyard`.
+\`\`\`
+This command builds the Docker image for DockYard and tags it as \`dockyard\`.
 
 **7. Run the DockYard Container**
 
 Once the image is built, you can run DockYard using the following command:
 
-```bash
+\`\`\`bash
 docker run -d --rm \
     -p 5001:5001 \
     -v /var/run/docker.sock:/var/run/docker.sock \
     -e TEMPLATE_SOURCES_URL="https://raw.githubusercontent.com/Qballjos/portainer_templates/master/Template/template.json" \
-    -e SECRET_KEY="change_this_to_a_very_strong_secret_key" \
+    # IMPORTANT: Always change the SECRET_KEY below to a unique, strong random string!
+    # Do NOT use this example value in a production environment.
+    -e SECRET_KEY="YOUR_UNIQUE_STRONG_SECRET_KEY_HERE" \
     --name dockyard-app \
     dockyard
-```
+\`\`\`
 
-**Explanation of the `docker run` command:**
-*   `-d`: Run in detached mode (in the background).
-*   `--rm`: Automatically remove the container when it exits (useful for testing and keeping things clean).
-*   `-p 5001:5001`: Map port 5001 on your host to port 5001 in the container (DockYard listens on this port).
-*   `-v /var/run/docker.sock:/var/run/docker.sock`: **Crucial!** This mounts the host's Docker socket into the DockYard container, allowing DockYard to manage other Docker containers on your system.
-*   `-e TEMPLATE_SOURCES_URL=...`: Sets the URL (or comma-separated URLs) for the application templates.
-*   `-e SECRET_KEY=...`: **Important!** Change this to a strong, unique secret key for your instance.
-*   `--name dockyard-app`: Assigns a recognizable name to your running container.
-*   `dockyard`: The name of the Docker image to run (which you built in the previous step).
+**Explanation of the \`docker run\` command:**
+*   \`-d\`: Run in detached mode (in the background).
+*   \`--rm\`: Automatically remove the container when it exits (useful for testing and keeping things clean).
+*   \`-p 5001:5001\`: Map port 5001 on your host to port 5001 in the container (DockYard listens on this port).
+*   \`-v /var/run/docker.sock:/var/run/docker.sock\`: **Crucial!** This mounts the host's Docker socket into the DockYard container, allowing DockYard to manage other Docker containers on your system.
+*   \`-e TEMPLATE_SOURCES_URL=...\`: Sets the URL (or comma-separated URLs) for the application templates.
+*   \`-e SECRET_KEY=...\`: **Critical Security Note!** You **MUST** change this to a strong, unique secret key for your instance. The Flask \`SECRET_KEY\` is used for session management, signing cookies, and other security-related functions.
+*   \`--name dockyard-app\`: Assigns a recognizable name to your running container.
+*   \`dockyard\`: The name of the Docker image to run (which you built in the previous step).
 
 *(For users on macOS or Windows, please refer to the official Docker Desktop documentation for installation, then proceed from step 5, adapting paths and commands as necessary.)*
 
@@ -165,11 +167,12 @@ docker run -d --rm \
     -p 5001:5001 \
     -v /var/run/docker.sock:/var/run/docker.sock \
     -e TEMPLATE_SOURCES_URL="https://raw.githubusercontent.com/Qballjos/portainer_templates/master/Template/template.json,https://another.example.com/templates.json" \
-    -e SECRET_KEY="your_strong_secret_key" \
+    # IMPORTANT: Always change the SECRET_KEY below to a unique, strong random string!
+    -e SECRET_KEY="YOUR_UNIQUE_STRONG_SECRET_KEY_HERE" \
     --name dockyard-app \
     dockyard
 \`\`\`
-If \`TEMPLATE_SOURCES_URL\` is not provided, it defaults to the one specified in the Dockerfile (or `config.py`).
+If \`TEMPLATE_SOURCES_URL\` is not provided, it defaults to the one specified in the Dockerfile (or \`config.py\`).
 
 ## How It Works
 
