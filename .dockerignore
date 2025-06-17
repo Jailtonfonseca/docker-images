@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.git
+.gitignore
+*.db # if we were using sqlite locally for example
+# Add other files/directories to ignore if necessary
+dockyard_app/__pycache__/
+*.DS_Store
