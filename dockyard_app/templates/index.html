@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <header>
+        <h1>Welcome to DockYard</h1>
+        <p>Browse and install Docker applications easily.</p>
+    </header>
+    <main>
+        <h2>Available Applications</h2>
+        <div id="message-area" class="message-area"></div>
+        {% if templates %}
+            <div class="template-grid">
+                {% for template in templates %}
+                    <div class="template-card">
+                        {% if template.logo %}
+                            <img src="{{ template.logo }}" alt="{{ template.title }} logo" class="template-logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                            <img src="https://via.placeholder.com/100x100.png?text=No+Logo" alt="No logo" class="template-logo placeholder-logo" style="display:none;">
+                        {% else %}
+                            <img src="https://via.placeholder.com/100x100.png?text=No+Logo" alt="No logo" class="template-logo placeholder-logo">
+                        {% endif %}
+                        <h3>{{ template.title }}</h3>
+                        <p class="template-description">{{ template.description }}</p>
+                        <button class="install-button" data-template-id="{{ template.id }}" data-template-title="{{ template.title }}">Install</button>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p>No applications found. Check configuration or template sources.</p>
+        {% endif %}
+    </main>
+    <footer>
+        <p>&copy; DockYard</p>
+    </footer>
+    <script>
+        const messageArea = document.getElementById('message-area');
+
+        function showMessage(text, type = 'info') {
+            messageArea.textContent = text;
+            messageArea.className = 'message-area'; // Reset classes
+            if (type === 'success') {
+                messageArea.classList.add('success');
+            } else if (type === 'error') {
+                messageArea.classList.add('error');
+            }
+            // Message will auto-hide after some time
+            setTimeout(() => {
+                messageArea.textContent = '';
+                messageArea.className = 'message-area';
+            }, 5000);
+        }
+
+        document.querySelectorAll('.install-button').forEach(button => {
+            button.addEventListener('click', () => {
+                const templateId = button.getAttribute('data-template-id');
+                const templateTitle = button.getAttribute('data-template-title');
+
+                showMessage(\`Starting installation for \${templateTitle}...\`, 'info');
+                button.disabled = true; // Disable button during request
+
+                fetch('/install_app', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ template_id: templateId }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showMessage(\`\${data.message}\`, 'success');
+                    } else {
+                        showMessage(\`Error installing \${templateTitle}: \${data.message}\`, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showMessage(\`Request failed for \${templateTitle}: \${error}\`, 'error');
+                })
+                .finally(() => {
+                    button.disabled = false; // Re-enable button
+                });
+            });
+        });
+    </script>
+</body>
+</html>
