@@ -1,6 +1,6 @@
 # DockYard - Your Docker Application Facilitator
 
-DockYard is a simple web application that helps you discover and install Docker applications from predefined template lists. It's designed to be a lightweight alternative or companion to tools like Portainer for quick deployments.
+DockYard is a simple web application that helps you discover and install Docker applications from predefined template lists. It'sdesigned to be a lightweight alternative or companion to tools like Portainer for quick deployments.
 
 ## Features
 
@@ -104,17 +104,16 @@ You should see that the service is active (running).
 
 **5. Obtain the DockYard Application Code**
 
-If you haven't already, get the DockYard source code. If this is a Git repository:
+Clone the repository from GitHub and navigate into the cloned directory:
 \`\`\`bash
-# Replace with the actual repository URL if applicable
-# git clone https://your-git-repository-url/dockyard.git
-# cd dockyard
+git clone https://github.com/Jailtonfonseca/docker-images.git
+cd docker-images
 \`\`\`
-For now, assuming you have the source code in your current directory.
+All subsequent commands assume you are in the \`docker-images\` directory.
 
 **6. Build the DockYard Docker Image**
 
-Navigate to the root directory of the DockYard project (where the \`Dockerfile\` is located) and run:
+Inside the \`docker-images\` directory (which contains the \`Dockerfile\` for DockYard), run:
 \`\`\`bash
 docker build -t dockyard .
 \`\`\`
@@ -122,7 +121,7 @@ This command builds the Docker image for DockYard and tags it as \`dockyard\`.
 
 **7. Run the DockYard Container**
 
-Once the image is built, you can run DockYard using the following command:
+Once the image is built (while still in the \`docker-images\` directory), you can run DockYard using the following command:
 
 \`\`\`bash
 docker run -d --rm \
@@ -146,7 +145,7 @@ docker run -d --rm \
 *   \`--name dockyard-app\`: Assigns a recognizable name to your running container.
 *   \`dockyard\`: The name of the Docker image to run (which you built in the previous step).
 
-*(For users on macOS or Windows, please refer to the official Docker Desktop documentation for installation, then proceed from step 5, adapting paths and commands as necessary.)*
+*(For users on macOS or Windows, please refer to the official Docker Desktop documentation for installation, then proceed from step 5, adapting paths and commands as necessary. Ensure you are in the correct directory after cloning.)*
 
 ### Accessing DockYard
 
