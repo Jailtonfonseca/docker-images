@@ -5,6 +5,7 @@ DockYard is a simple web application that helps you discover and install Docker 
 ## Features
 
 *   Browse Docker applications from multiple template sources.
+*   De-duplicates applications if multiple sources list the same app title.
 *   View application details: title, description, logo.
 *   Install container-based applications directly through the Docker API (Type 2 templates).
 *   Configurable template source URLs via environment variable **and** through the application UI.
@@ -162,10 +163,12 @@ DockYard offers two ways to configure template source URLs:
     *   **Persistence:** These UI-configured URLs are stored in a file named \`user_template_sources.json\` inside the container's \`/app_data\` directory. To ensure these settings persist across container restarts or updates, you **must** mount a Docker volume to the \`/app_data\` path inside the container (see Step 7 for an example using \`-v dockyard_data:/app_data\`).
     *   **Precedence:** If user-defined URLs are configured through the UI and saved, they will take precedence over (i.e., replace) the URLs specified in the \`TEMPLATE_SOURCES_URL\` environment variable. If the list of user-defined URLs is empty, DockYard will fall back to using the URLs from the environment variable.
 
+**Note on Duplicate Applications:** If multiple configured template sources (either from user-defined lists or environment variables) define applications with the same title (case-insensitive, ignoring leading/trailing whitespace), DockYard will de-duplicate them. Only the first occurrence of an application with a unique title encountered (based on the order of your template source URLs and the order of templates within those files) will be listed and available for installation.
+
 ## How It Works
 DockYard consists of:
 *   A Flask web application (Python).
-*   A template manager (\`template_manager.py\`) that fetches, parses, and caches JSON template files.
+*   A template manager (\`template_manager.py\`) that fetches, parses, de-duplicates, and caches JSON template files.
 *   A configuration manager (\`config_manager.py\`) that handles storage of user-defined template URLs.
 *   A Docker manager (\`docker_manager.py\`) that interacts with the Docker daemon to pull images and run containers.
 *   An APScheduler instance for periodic background updates of templates.
