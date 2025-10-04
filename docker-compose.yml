@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  dockyard:
+    build: .
+    container_name: dockyard-app
+    restart: unless-stopped
+    ports:
+      - "5001:5001"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - dockyard_data:/app_data
+    environment:
+      - SECRET_KEY=YOUR_UNIQUE_STRONG_SECRET_KEY_HERE
+      - TEMPLATE_SOURCES_URL=https://raw.githubusercontent.com/Qballjos/portainer_templates/master/Template/template.json
+
+volumes:
+  dockyard_data:
