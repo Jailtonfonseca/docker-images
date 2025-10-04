@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }} - DockYard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .header-nav { margin-top: 10px; margin-bottom: 10px; }
+        .header-nav a { margin: 0 15px; text-decoration: none; color: #fff; font-weight: bold; }
+        .header-nav a:hover { text-decoration: underline; }
+    </style>
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <header>
+        <h1>Welcome to DockYard</h1>
+        <p>Browse and install Docker applications easily.</p>
+        <nav class="header-nav">
+            <a href="{{ url_for('index') }}">Home</a>
+            <a href="{{ url_for('settings_page') }}">Settings</a>
+            <a href="{{ url_for('dashboard') }}">Dashboard</a>
+            {% if current_user.is_authenticated %}
+            <a href="{{ url_for('logout') }}">Logout</a>
+            {% endif %}
+        </nav>
+    </header>
+    <main>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+    </main>
+    <footer>
+        <p>&copy; DockYard</p>
+    </footer>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

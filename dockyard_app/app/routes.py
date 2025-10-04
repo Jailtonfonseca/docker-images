@@ -1,18 +1,24 @@
 from flask import current_app, Blueprint
-from app import app
-from flask import render_template, jsonify, request
+from app import app, bcrypt
+from flask import render_template, jsonify, request, flash, redirect, url_for
 from . import template_manager
 from . import docker_manager
 from . import config_manager
+from .forms import RegistrationForm, LoginForm
+from .models import User
+from flask_login import login_user, current_user, logout_user, login_required
 import json # For pretty printing dicts in logs
+import psutil
 
 @app.route('/')
+@login_required
 def index():
     app.logger.info("Index route called.")
     templates_data = template_manager.get_all_templates()
-    processed_templates = []
+    # Group templates by title to handle duplicates
+    grouped_templates = {}
     if templates_data:
-        for t in templates_data:
+        for i, t in enumerate(templates_data):
             template_type = t.get('type')
             title = t.get('title')
             logo = t.get('logo')
@@ -20,20 +26,49 @@ def index():
 
             # Only include templates that have a title, logo, description, and a supported type (1 or 2)
             if title and logo and description and (template_type in [1, 2, '1', '2']):
-                processed_templates.append({
-                    'id': title.replace(' ', '_').lower(),  # Simple ID from title
-                    'title': title,
-                    'description': description,
-                    'logo': logo,
-                    'type': template_type,  # Store original type for display/filtering
-                })
-    app.logger.info(f"Displaying {len(processed_templates)} templates from cache.")
-    return render_template("index.html", title="DockYard - Available Apps", templates=processed_templates)
+                if title not in grouped_templates:
+                    grouped_templates[title] = {
+                        'title': title,
+                        'logo': logo,
+                        'description': description,
+                        'templates': []
+                    }
+
+                # Use a unique ID for each template instance
+                t['id'] = f"{title.replace(' ', '_').lower()}_{i}"
+                grouped_templates[title]['templates'].append(t)
+
+    app.logger.info(f"Displaying {len(grouped_templates)} grouped templates from cache.")
+    return render_template("index.html", title="DockYard - Available Apps", grouped_templates=grouped_templates)
 
 @app.route('/settings')
+@login_required
 def settings_page():
     app.logger.info("Settings page route called.")
     return render_template("settings.html", title="DockYard Settings")
+
+@app.route('/app/<template_id>')
+@login_required
+def app_details(template_id):
+    app.logger.info(f"App details route called for template_id: {template_id}")
+    template = template_manager.get_template_by_id(template_id)
+    if not template:
+        app.logger.error(f"Template with id {template_id} not found.")
+        return "Template not found", 404
+
+    return render_template("app_details.html", title=template.get('title', 'App Details'), template=template)
+
+@app.route('/dashboard')
+@login_required
+def dashboard():
+    app.logger.info("Dashboard route called.")
+    cpu_usage = psutil.cpu_percent(interval=1)
+    ram_usage = psutil.virtual_memory().percent
+
+    # Temperature is more complex, so we'll omit it for now.
+    # It often requires specific libraries and configuration per-system.
+
+    return render_template("dashboard.html", title="System Dashboard", cpu_usage=cpu_usage, ram_usage=ram_usage)
 
 @app.route('/templates_json')
 def list_templates_json():
@@ -46,6 +81,7 @@ def list_templates_json():
     return jsonify(templates_data)
 
 @app.route('/install_app', methods=['POST'])
+@login_required
 def install_app_route():
     app.logger.info("Install app route called.")
     data = request.get_json()
@@ -115,3 +151,48 @@ def save_template_sources_api():
     else:
         app.logger.error("API POST /sources: Failed to save template sources using config_manager.")
         return jsonify({"success": False, "message": "Failed to save template sources."}), 500
+
+@app.before_request
+def check_for_users():
+    # Allow access to static files and the registration page without a user check
+    if request.endpoint and (request.endpoint.startswith('static') or request.endpoint in ['register', 'login']):
+        return
+
+    if not User.get_all_users():
+        if request.endpoint != 'register':
+            return redirect(url_for('register'))
+
+@app.route("/register", methods=['GET', 'POST'])
+def register():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    # If users already exist, redirect to login
+    if User.get_all_users() and request.method == 'GET':
+        return redirect(url_for('login'))
+    form = RegistrationForm()
+    if form.validate_on_submit():
+        hashed_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
+        User.save_user(username=form.username.data, password_hash=hashed_password)
+        flash('Your account has been created! You are now able to log in', 'success')
+        return redirect(url_for('login'))
+    return render_template('register.html', title='Register', form=form)
+
+@app.route("/login", methods=['GET', 'POST'])
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    form = LoginForm()
+    if form.validate_on_submit():
+        user = User.find_by_username(form.username.data)
+        if user and bcrypt.check_password_hash(user.password_hash, form.password.data):
+            login_user(user, remember=form.remember.data)
+            next_page = request.args.get('next')
+            return redirect(next_page) if next_page else redirect(url_for('index'))
+        else:
+            flash('Login Unsuccessful. Please check username and password', 'danger')
+    return render_template('login.html', title='Login', form=form)
+
+@app.route("/logout")
+def logout():
+    logout_user()
+    return redirect(url_for('login'))

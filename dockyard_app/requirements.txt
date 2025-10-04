@@ -3,3 +3,7 @@ python-dotenv
 requests
 docker
 APScheduler
+psutil
+Flask-Login
+Flask-Bcrypt
+Flask-WTF
