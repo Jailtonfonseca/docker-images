@@ -1,10 +1,6 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manage Template Sources - DockYard</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+{% extends "base.html" %}
+
+{% block head %}
     <style>
         main { max-width: 800px; margin: 20px auto; padding: 20px; background-color: #fff; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
         h2 { text-align: center; color: #333; }
@@ -21,152 +17,131 @@
         .current-sources h3 { margin-top: 0; }
         .current-sources ul { list-style-type: none; padding-left: 0; }
         .current-sources li { word-break: break-all; padding: 3px 0; }
-        .navigation-links { text-align: center; margin-bottom: 20px; }
-        .navigation-links a { margin: 0 10px; text-decoration: none; color: #007bff; }
-        .navigation-links a:hover { text-decoration: underline; }
     </style>
-</head>
-<body>
-    <header>
-        <h1>DockYard Settings</h1>
-    </header>
-    <main>
-        <div class="navigation-links">
-            <a href="{{ url_for('index') }}">Home</a>
-        </div>
-        <h2>Manage Template Sources</h2>
-        <p>Enter each template source URL on a new line or separated by commas. These URLs will be used to fetch application templates. If this list is empty, DockYard will use the sources defined in its environment configuration.</p>
+{% endblock %}
 
-        <div id="messageArea" class="message-area"></div>
+{% block content %}
+    <h2>Manage Template Sources</h2>
+    <p>Enter each template source URL on a new line or separated by commas. These URLs will be used to fetch application templates. If this list is empty, DockYard will use the sources defined in its environment configuration.</p>
 
-        <div class="form-group">
-            <label for="templateSources">Template Source URLs:</label>
-            <textarea id="templateSources" name="templateSources" rows="6" placeholder="https://example.com/templates1.json
+    <div id="messageArea" class="message-area"></div>
+
+    <div class="form-group">
+        <label for="templateSources">Template Source URLs:</label>
+        <textarea id="templateSources" name="templateSources" rows="6" placeholder="https://example.com/templates1.json
 https://another.org/templates2.json"></textarea>
-        </div>
+    </div>
 
-        <div class="button-container">
-            <button id="saveSettingsButton" class="save-button">Save Settings</button>
-        </div>
+    <div class="button-container">
+        <button id="saveSettingsButton" class="save-button">Save Settings</button>
+    </div>
 
-        <div class="current-sources">
-            <h3>Currently Active Template Sources:</h3>
-            <p><small>(This list reflects user-defined URLs if set, otherwise environment defaults.)</small></p>
-            <ul id="currentSourcesList">
-                <li>Loading...</li>
-            </ul>
-        </div>
-    </main>
-    <footer>
-        <p>&copy; DockYard</p>
-    </footer>
+    <div class="current-sources">
+        <h3>Currently Active Template Sources:</h3>
+        <p><small>(This list reflects user-defined URLs if set, otherwise environment defaults.)</small></p>
+        <ul id="currentSourcesList">
+            <li>Loading...</li>
+        </ul>
+    </div>
+{% endblock %}
 
-    <script>
-        const messageArea = document.getElementById('messageArea');
-        const templateSourcesTextarea = document.getElementById('templateSources');
-        const saveSettingsButton = document.getElementById('saveSettingsButton');
-        const currentSourcesList = document.getElementById('currentSourcesList');
+{% block scripts %}
+<script>
+    const messageArea = document.getElementById('messageArea');
+    const templateSourcesTextarea = document.getElementById('templateSources');
+    const saveSettingsButton = document.getElementById('saveSettingsButton');
+    const currentSourcesList = document.getElementById('currentSourcesList');
 
-        function showMessage(text, type = 'info') {
-            messageArea.textContent = text;
-            messageArea.className = 'message-area'; // Reset classes
-            if (type === 'success') {
-                messageArea.classList.add('success');
-            } else if (type === 'error') {
-                messageArea.classList.add('error');
-            }
-            messageArea.style.display = 'block';
-            setTimeout(() => {
-                messageArea.style.display = 'none';
-                messageArea.textContent = '';
-            }, 5000);
+    function showMessage(text, type = 'info') {
+        messageArea.textContent = text;
+        messageArea.className = 'message-area'; // Reset classes
+        if (type === 'success') {
+            messageArea.classList.add('success');
+        } else if (type === 'error') {
+            messageArea.classList.add('error');
         }
+        messageArea.style.display = 'block';
+        setTimeout(() => {
+            messageArea.style.display = 'none';
+            messageArea.textContent = '';
+        }, 5000);
+    }
 
-        async function fetchCurrentSettings() {
-            try {
-                const response = await fetch('/api/settings/templates/sources');
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: \${response.status}`);
-                }
-                const data = await response.json();
-                templateSourcesTextarea.value = data.urls.join('\n');
-                displayActiveSources(); // Also update the "active" list display
-            } catch (error) {
-                console.error('Error fetching current settings:', error);
-                showMessage('Failed to load current settings.', 'error');
+    async function fetchCurrentSettings() {
+        try {
+            const response = await fetch('/api/settings/templates/sources');
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
+            const data = await response.json();
+            templateSourcesTextarea.value = data.urls.join('\n');
+            displayActiveSources(); // Also update the "active" list display
+        } catch (error) {
+            console.error('Error fetching current settings:', error);
+            showMessage('Failed to load current settings.', 'error');
         }
+    }
 
-        // This function is a bit of a duplicate of what the backend does for /templates_json
-        // but shows the *configured* sources, not the parsed templates.
-        // For a more accurate "active" list, we might need another API endpoint or rely on what's shown in textarea.
-        // For now, this will re-fetch what user has defined.
-        async function displayActiveSources() {
-            currentSourcesList.innerHTML = '<li>Loading...</li>'; // Clear previous
-            try {
-                // To show truly *active* sources (user OR env), we'd need an API endpoint for that.
-                // For now, we show user-defined. If empty, user knows it falls back to env.
-                // The backend /api/settings/templates/sources returns user-defined ones.
-                const response = await fetch('/api/settings/templates/sources');
-                if (!response.ok) throw new Error('Failed to fetch sources');
-                const data = await response.json();
+    async function displayActiveSources() {
+        currentSourcesList.innerHTML = '<li>Loading...</li>'; // Clear previous
+        try {
+            const response = await fetch('/api/settings/templates/sources');
+            if (!response.ok) throw new Error('Failed to fetch sources');
+            const data = await response.json();
 
-                if (data.urls && data.urls.length > 0) {
-                    currentSourcesList.innerHTML = ''; // Clear loading
-                    data.urls.forEach(url => {
-                        const li = document.createElement('li');
-                        li.textContent = url;
-                        currentSourcesList.appendChild(li);
-                    });
-                } else {
-                    currentSourcesList.innerHTML = '<li>No user-defined sources. Using environment defaults.</li>';
-                }
-            } catch (error) {
-                console.error('Error displaying active sources:', error);
-                currentSourcesList.innerHTML = '<li>Error loading sources.</li>';
+            if (data.urls && data.urls.length > 0) {
+                currentSourcesList.innerHTML = ''; // Clear loading
+                data.urls.forEach(url => {
+                    const li = document.createElement('li');
+                    li.textContent = url;
+                    currentSourcesList.appendChild(li);
+                });
+            } else {
+                currentSourcesList.innerHTML = '<li>No user-defined sources. Using environment defaults.</li>';
             }
+        } catch (error) {
+            console.error('Error displaying active sources:', error);
+            currentSourcesList.innerHTML = '<li>Error loading sources.</li>';
         }
+    }
 
 
-        saveSettingsButton.addEventListener('click', async () => {
-            const urlsString = templateSourcesTextarea.value;
-            // Split by newline or comma, then filter out empty strings and trim whitespace
-            const urlsArray = urlsString.split(/[\n,]+/)
+    saveSettingsButton.addEventListener('click', async () => {
+        const urlsString = templateSourcesTextarea.value;
+        const urlsArray = urlsString.split(/[\n,]+/)
                                      .map(url => url.trim())
                                      .filter(url => url.length > 0);
 
-            saveSettingsButton.disabled = true;
-            showMessage('Saving settings...', 'info');
+        saveSettingsButton.disabled = true;
+        showMessage('Saving settings...', 'info');
 
-            try {
-                const response = await fetch('/api/settings/templates/sources', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ urls: urlsArray }),
-                });
+        try {
+            const response = await fetch('/api/settings/templates/sources', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ urls: urlsArray }),
+            });
 
-                const result = await response.json();
+            const result = await response.json();
 
-                if (response.ok && result.success) {
-                    showMessage(result.message || 'Settings saved successfully!', 'success');
-                    fetchCurrentSettings(); // Refresh the displayed settings
-                } else {
-                    throw new Error(result.message || 'Failed to save settings.');
-                }
-            } catch (error) {
-                console.error('Error saving settings:', error);
-                showMessage(error.message, 'error');
-            } finally {
-                saveSettingsButton.disabled = false;
+            if (response.ok && result.success) {
+                showMessage(result.message || 'Settings saved successfully!', 'success');
+                fetchCurrentSettings(); // Refresh the displayed settings
+            } else {
+                throw new Error(result.message || 'Failed to save settings.');
             }
-        });
+        } catch (error) {
+            console.error('Error saving settings:', error);
+            showMessage(error.message, 'error');
+        } finally {
+            saveSettingsButton.disabled = false;
+        }
+    });
 
-        // Load settings when the page loads
-        document.addEventListener('DOMContentLoaded', () => {
-            fetchCurrentSettings();
-        });
-    </script>
-</body>
-</html>
+    document.addEventListener('DOMContentLoaded', () => {
+        fetchCurrentSettings();
+    });
+</script>
+{% endblock %}

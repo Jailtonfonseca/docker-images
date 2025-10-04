@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block head %}
+    <style>
+        .dashboard-container {
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 2em;
+            max-width: 800px;
+            margin: 2em auto;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+        }
+        .metric {
+            margin-bottom: 1em;
+        }
+        .metric h4 {
+            margin-bottom: 0.5em;
+        }
+        .progress-bar {
+            width: 100%;
+            background-color: #eee;
+            border-radius: 5px;
+        }
+        .progress-bar-inner {
+            height: 20px;
+            background-color: #5cb85c;
+            border-radius: 5px;
+            text-align: center;
+            color: white;
+            line-height: 20px;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <div class="dashboard-container">
+        <h2>{{ title }}</h2>
+        <div class="metric">
+            <h4>CPU Usage</h4>
+            <div class="progress-bar">
+                <div class="progress-bar-inner" style="width: {{ cpu_usage }}%;">{{ cpu_usage }}%</div>
+            </div>
+        </div>
+        <div class="metric">
+            <h4>RAM Usage</h4>
+            <div class="progress-bar">
+                <div class="progress-bar-inner" style="width: {{ ram_usage }}%;">{{ ram_usage }}%</div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

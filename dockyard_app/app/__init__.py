@@ -3,6 +3,8 @@ import os # Import os for path manipulation
 from flask import Flask
 from config import Config
 from apscheduler.schedulers.background import BackgroundScheduler
+from flask_login import LoginManager
+from flask_bcrypt import Bcrypt
 
 # Determine the correct path to the template folder
 # The app is in dockyard_app/app/, templates are in dockyard_app/templates/
@@ -14,6 +16,17 @@ from apscheduler.schedulers.background import BackgroundScheduler
 
 app = Flask(__name__, template_folder='../templates', static_folder='../static')
 app.config.from_object(Config)
+
+bcrypt = Bcrypt(app)
+login_manager = LoginManager(app)
+login_manager.login_view = 'login'
+login_manager.login_message_category = 'info'
+
+from app.models import User
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.find_by_id(int(user_id))
 
 # Basic logging setup
 logging.basicConfig(level=logging.INFO)

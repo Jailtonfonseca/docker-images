@@ -1,102 +1,182 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ title }}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <style>
-        .header-nav { margin-top: 10px; margin-bottom: 10px; }
-        .header-nav a { margin: 0 15px; text-decoration: none; color: #fff; font-weight: bold; }
-        .header-nav a:hover { text-decoration: underline; }
-    </style>
-</head>
-<body>
-    <header>
-        <h1>Welcome to DockYard</h1>
-        <p>Browse and install Docker applications easily.</p>
-        <nav class="header-nav">
-            <a href="{{ url_for('index') }}">Home</a>
-            <a href="{{ url_for('settings_page') }}">Settings</a>
-        </nav>
-    </header>
-    <main>
-        <h2>Available Applications</h2>
-        <div id="message-area" class="message-area"></div>
-        {% if templates %}
-            <div class="template-grid">
-                {% for template in templates %}
-                    <div class="template-card">
-                        {% if template.logo %}
-                            <img src="{{ template.logo }}" alt="{{ template.title }} logo" class="template-logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-                            <img src="https://via.placeholder.com/100x100.png?text=No+Logo" alt="No logo" class="template-logo placeholder-logo" style="display:none;">
-                        {% else %}
-                            <img src="https://via.placeholder.com/100x100.png?text=No+Logo" alt="No logo" class="template-logo placeholder-logo">
-                        {% endif %}
-                        <h3>{{ template.title }}</h3>
-                        <p class="template-description">{{ template.description }}</p>
-                        <button class="install-button" data-template-id="{{ template.id }}" data-template-title="{{ template.title }}">Install</button>
-                    </div>
-                {% endfor %}
-            </div>
-        {% else %}
-            <p>No applications found. Check configuration or template sources.</p>
-        {% endif %}
-    </main>
-    <footer>
-        <p>&copy; DockYard</p>
-    </footer>
-    <script>
-        const messageArea = document.getElementById('message-area');
+{% extends "base.html" %}
 
-        function showMessage(text, type = 'info') {
-            messageArea.textContent = text;
+{% block content %}
+    <h2>Available Applications</h2>
+    <div id="message-area" class="message-area"></div>
+    {% if grouped_templates %}
+        <div class="template-grid">
+            {% for group in grouped_templates.values() %}
+                <div class="template-card">
+                    {% if group.templates|length == 1 %}<a href="{{ url_for('app_details', template_id=group.templates[0].id) }}">{% endif %}
+                    {% if group.logo %}
+                        <img src="{{ group.logo }}" alt="{{ group.title }} logo" class="template-logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                        <img src="https://via.placeholder.com/100x100.png?text=No+Logo" alt="No logo" class="template-logo placeholder-logo" style="display:none;">
+                    {% else %}
+                        <img src="https://via.placeholder.com/100x100.png?text=No+Logo" alt="No logo" class="template-logo placeholder-logo">
+                    {% endif %}
+                    {% if group.templates|length == 1 %}</a>{% endif %}
+                    <h3>{{ group.title }}</h3>
+                    <p class="template-description">{{ group.description }}</p>
+                    {% if group.templates|length > 1 %}
+                        <button class="install-button-multiple" data-group-title="{{ group.title }}" data-templates='{{ group.templates|tojson }}'>Select Template</button>
+                    {% else %}
+                        <button class="install-button" data-template-id="{{ group.templates[0].id }}" data-template-title="{{ group.title }}">Install</button>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p>No applications found. Check configuration or template sources.</p>
+    {% endif %}
+
+    <!-- Template Selection Modal -->
+    <div id="template-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h3 id="modal-title">Select a Template</h3>
+            <div id="modal-body">
+                <!-- Template options will be populated here by JavaScript -->
+            </div>
+            <button id="modal-install-button">Install Selected</button>
+        </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const messageArea = document.getElementById('message-area');
+
+    function showMessage(text, type = 'info') {
+        messageArea.textContent = text;
+        messageArea.className = 'message-area';
+        if (type === 'success') {
+            messageArea.classList.add('success');
+        } else if (type === 'error') {
+            messageArea.classList.add('error');
+        }
+        setTimeout(() => {
+            messageArea.textContent = '';
             messageArea.className = 'message-area';
-            if (type === 'success') {
-                messageArea.classList.add('success');
-            } else if (type === 'error') {
-                messageArea.classList.add('error');
-            }
-            setTimeout(() => {
-                messageArea.textContent = '';
-                messageArea.className = 'message-area';
-            }, 5000);
+        }, 5000);
+    }
+
+    function installApp(templateId, templateTitle, button) {
+        showMessage(`Starting installation for ${templateTitle}...`, 'info');
+        if (button) {
+            button.disabled = true;
+            button.textContent = 'Installing...';
         }
 
-        document.querySelectorAll('.install-button').forEach(button => {
-            button.addEventListener('click', () => {
-                const templateId = button.getAttribute('data-template-id');
-                const templateTitle = button.getAttribute('data-template-title');
-
-                showMessage(\`Starting installation for \${templateTitle}...\`, 'info');
-                button.disabled = true;
-                button.textContent = 'Installing...';
-
-                fetch('/install_app', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ template_id: templateId }),
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        showMessage(\`\${data.message}\`, 'success');
-                    } else {
-                        showMessage(\`Error installing \${templateTitle}: \${data.message}\`, 'error');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    showMessage(\`Request failed for \${templateTitle}: \${error}\`, 'error');
-                })
-                .finally(() => {
-                    button.disabled = false;
-                    button.textContent = 'Install';
-                });
-            });
+        fetch('/install_app', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ template_id: templateId }),
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showMessage(`${data.message}`, 'success');
+            } else {
+                showMessage(`Error installing ${templateTitle}: ${data.message}`, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage(`Request failed for ${templateTitle}: ${error}`, 'error');
+        })
+        .finally(() => {
+            if (button) {
+                button.disabled = false;
+                button.textContent = 'Install';
+            }
         });
-    </script>
-</body>
-</html>
+    }
+
+    document.querySelectorAll('.install-button').forEach(button => {
+        button.addEventListener('click', () => {
+            const templateId = button.getAttribute('data-template-id');
+            const templateTitle = button.getAttribute('data-template-title');
+            installApp(templateId, templateTitle, button);
+        });
+    });
+
+    const modal = document.getElementById('template-modal');
+    const closeButton = document.querySelector('.close-button');
+    const modalTitle = document.getElementById('modal-title');
+    const modalBody = document.getElementById('modal-body');
+    const modalInstallButton = document.getElementById('modal-install-button');
+
+    document.querySelectorAll('.install-button-multiple').forEach(button => {
+        button.addEventListener('click', () => {
+            const groupTitle = button.getAttribute('data-group-title');
+            const templates = JSON.parse(button.getAttribute('data-templates'));
+
+            modalTitle.textContent = `Select a template for ${groupTitle}`;
+            modalBody.innerHTML = '';
+
+            templates.forEach((template, index) => {
+                const radioId = `template_radio_${index}`;
+                const radioWrapper = document.createElement('div');
+                radioWrapper.style.marginBottom = '10px';
+                radioWrapper.style.padding = '10px';
+                radioWrapper.style.border = '1px solid #eee';
+                radioWrapper.style.borderRadius = '5px';
+
+                const radioInput = document.createElement('input');
+                radioInput.type = 'radio';
+                radioInput.name = 'template_selection';
+                radioInput.id = radioId;
+                radioInput.value = template.id;
+                if (index === 0) {
+                    radioInput.checked = true;
+                }
+
+                const radioLabel = document.createElement('label');
+                radioLabel.htmlFor = radioId;
+                radioLabel.style.marginLeft = '10px';
+
+                // Build a more descriptive label
+                let labelContent = `<strong>Image:</strong> ${template.image}`;
+                if (template.note) {
+                    // The note can contain HTML, so we leave it as is.
+                    labelContent += `<br><small><strong>Note:</strong> ${template.note}</small>`;
+                }
+                // Provide a link to the details page for each specific template
+                labelContent += ` <a href="/app/${template.id}" target="_blank" style="font-weight:normal;">(Details)</a>`;
+
+                radioLabel.innerHTML = labelContent;
+
+                radioWrapper.appendChild(radioInput);
+                radioWrapper.appendChild(radioLabel);
+                modalBody.appendChild(radioWrapper);
+            });
+
+            modal.style.display = 'block';
+        });
+    });
+
+    closeButton.onclick = function() {
+        modal.style.display = 'none';
+    }
+
+    window.onclick = function(event) {
+        if (event.target == modal) {
+            modal.style.display = 'none';
+        }
+    }
+
+    modalInstallButton.addEventListener('click', () => {
+        const selectedRadio = document.querySelector('input[name="template_selection"]:checked');
+        if (selectedRadio) {
+            const templateId = selectedRadio.value;
+            const templateTitle = modalTitle.textContent.replace('Select a template for ', '');
+            installApp(templateId, templateTitle, null);
+            modal.style.display = 'none';
+        } else {
+            showMessage('Please select a template to install.', 'error');
+        }
+    });
+</script>
+{% endblock %}

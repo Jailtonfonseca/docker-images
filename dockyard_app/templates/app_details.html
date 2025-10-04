@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block head %}
+    <style>
+        .details-container {
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 2em;
+            max-width: 800px;
+            margin: 2em auto;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <div class="details-container">
+        <h2>{{ template.title }}</h2>
+        <p>{{ template.description }}</p>
+        <hr>
+        <h4>Details:</h4>
+        <ul>
+            <li><strong>Type:</strong> {{ template.type }}</li>
+            {% if template.platform %}<li><strong>Platform:</strong> {{ template.platform }}</li>{% endif %}
+            {% if template.categories %}
+            <li><strong>Categories:</strong> {{ template.categories | join(', ') }}</li>
+            {% endif %}
+            {% if template.image %}<li><strong>Image:</strong> <code>{{ template.image }}</code></li>{% endif %}
+        </ul>
+        {% if template.ports %}
+        <h4>Ports:</h4>
+        <ul>
+            {% for port in template.ports %}
+            <li>{{ port }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+        {% if template.volumes %}
+        <h4>Volumes:</h4>
+        <ul>
+            {% for volume in template.volumes %}
+            <li>{{ volume.container }} -> {{ volume.bind }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+        {% if template.env %}
+        <h4>Environment Variables:</h4>
+        <ul>
+            {% for var in template.env %}
+            <li>{{ var.name }} ({{ var.label }}) {% if var.default %}- Default: {{ var.default }}{% endif %}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+        <hr>
+        <h4>Raw Template Data:</h4>
+        <pre><code>{{ template | tojson(indent=4) }}</code></pre>
+    </div>
+{% endblock %}

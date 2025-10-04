@@ -107,12 +107,18 @@ def get_all_templates():
     return _cached_templates
 
 def get_template_by_id(template_id_str):
-    """Gets a single template by its ID from the cache."""
+    """Gets a single template by its unique ID from the cache."""
     all_templates = get_all_templates()
-    for t in all_templates:
-        current_template_id = (t.get('title') or '').replace(' ', '_').lower()
-        if current_template_id == template_id_str:
-            return t
+    for i, t in enumerate(all_templates):
+        title = t.get('title')
+        if title:
+            # Recreate the unique ID using the same logic as in the index route
+            current_id = f"{title.replace(' ', '_').lower()}_{i}"
+            if current_id == template_id_str:
+                # Add the unique id to the template dict before returning
+                # so it's available for the caller.
+                t['id'] = current_id
+                return t
     return None
 
 # Add a basic logging import at module level for the logger fallback in fetch_templates_from_url
