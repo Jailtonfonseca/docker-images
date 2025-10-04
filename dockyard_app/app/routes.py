@@ -15,13 +15,17 @@ def index():
         for t in templates_data:
             template_type = t.get('type')
             title = t.get('title')
-            if title and (template_type == 1 or template_type == 2 or template_type == '1' or template_type == '2'): # Accept string types too for display
+            logo = t.get('logo')
+            description = t.get('description')
+
+            # Only include templates that have a title, logo, description, and a supported type (1 or 2)
+            if title and logo and description and (template_type in [1, 2, '1', '2']):
                 processed_templates.append({
-                    'id': title.replace(' ', '_').lower(), # Simple ID from title
+                    'id': title.replace(' ', '_').lower(),  # Simple ID from title
                     'title': title,
-                    'description': t.get('description', 'No description available.'),
-                    'logo': t.get('logo', ''),
-                    'type': template_type, # Store original type for display/filtering
+                    'description': description,
+                    'logo': logo,
+                    'type': template_type,  # Store original type for display/filtering
                 })
     app.logger.info(f"Displaying {len(processed_templates)} templates from cache.")
     return render_template("index.html", title="DockYard - Available Apps", templates=processed_templates)

@@ -70,6 +70,7 @@
 
                 showMessage(\`Starting installation for \${templateTitle}...\`, 'info');
                 button.disabled = true;
+                button.textContent = 'Installing...';
 
                 fetch('/install_app', {
                     method: 'POST',
@@ -92,6 +93,7 @@
                 })
                 .finally(() => {
                     button.disabled = false;
+                    button.textContent = 'Install';
                 });
             });
         });
