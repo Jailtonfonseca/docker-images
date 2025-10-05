@@ -7,3 +7,4 @@ psutil
 Flask-Login
 Flask-Bcrypt
 Flask-WTF
+google-generativeai

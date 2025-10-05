@@ -9,15 +9,38 @@ USER_TEMPLATE_SOURCES_FILENAME = 'user_template_sources.json'
 USER_TEMPLATE_SOURCES_PATH = os.path.join(APP_DATA_DIR, USER_TEMPLATE_SOURCES_FILENAME)
 
 def _ensure_data_dir_exists():
-    """Ensures the APP_DATA_DIR exists."""
-    if not os.path.exists(APP_DATA_DIR):
-        try:
+    """
+    Ensures the data directory exists.
+    Tries the default Docker path first, falls back to a local path on PermissionError.
+    """
+    global APP_DATA_DIR, USER_TEMPLATE_SOURCES_PATH  # Allow modification of global path variables
+
+    try:
+        if not os.path.exists(APP_DATA_DIR):
             os.makedirs(APP_DATA_DIR)
-            current_app.logger.info(f"Created data directory: {APP_DATA_DIR}")
-        except OSError as e:
-            current_app.logger.error(f"Error creating data directory {APP_DATA_DIR}: {e}")
-            # Depending on the error, this could be critical
-            raise # Re-raise the exception if directory creation fails
+            current_app.logger.info(f"Successfully created data directory: {APP_DATA_DIR}")
+    except PermissionError:
+        current_app.logger.warning(
+            f"Permission denied for '{APP_DATA_DIR}'. Falling back to a local directory."
+        )
+        # Define and switch to a local path inside the instance folder
+        local_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'app_data_local')
+        APP_DATA_DIR = local_dir
+        USER_TEMPLATE_SOURCES_PATH = os.path.join(APP_DATA_DIR, USER_TEMPLATE_SOURCES_FILENAME)
+
+        current_app.logger.info(f"Switched to local data directory: {APP_DATA_DIR}")
+
+        # Retry creating the directory at the new local path
+        if not os.path.exists(APP_DATA_DIR):
+            try:
+                os.makedirs(APP_DATA_DIR)
+                current_app.logger.info(f"Successfully created local data directory: {APP_DATA_DIR}")
+            except Exception as e:
+                current_app.logger.error(f"FATAL: Could not create local data directory {APP_DATA_DIR}: {e}")
+                raise  # Re-raise, as the app cannot function without a data directory
+    except OSError as e:
+        current_app.logger.error(f"An unexpected OSError occurred while creating data directory {APP_DATA_DIR}: {e}")
+        raise # Re-raise for other OS errors
 
 def get_user_template_sources():
     """

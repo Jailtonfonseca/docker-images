@@ -40,6 +40,16 @@
             <button id="modal-install-button">Install Selected</button>
         </div>
     </div>
+
+    <!-- Compose File Modal -->
+    <div id="compose-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <h3 id="compose-modal-title">Docker Compose File</h3>
+            <pre id="compose-modal-body"><code id="compose-content"></code></pre>
+            <button id="copy-compose-button">Copy to Clipboard</button>
+        </div>
+    </div>
 {% endblock %}
 
 {% block scripts %}
@@ -61,10 +71,10 @@
     }
 
     function installApp(templateId, templateTitle, button) {
-        showMessage(`Starting installation for ${templateTitle}...`, 'info');
+        showMessage(`Generating compose file for ${templateTitle}...`, 'info');
         if (button) {
             button.disabled = true;
-            button.textContent = 'Installing...';
+            button.textContent = 'Generating...';
         }
 
         fetch('/install_app', {
@@ -77,9 +87,17 @@
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                showMessage(`${data.message}`, 'success');
+                const composeModal = document.getElementById('compose-modal');
+                const composeContent = document.getElementById('compose-content');
+                const composeModalTitle = document.getElementById('compose-modal-title');
+
+                composeModalTitle.textContent = `Docker Compose for ${templateTitle}`;
+                composeContent.textContent = data.compose_file;
+                composeModal.style.display = 'block';
+
+                showMessage(`Successfully generated compose file for ${templateTitle}.`, 'success');
             } else {
-                showMessage(`Error installing ${templateTitle}: ${data.message}`, 'error');
+                showMessage(`Error generating compose file for ${templateTitle}: ${data.message}`, 'error');
             }
         })
         .catch(error => {
@@ -102,8 +120,7 @@
         });
     });
 
-    const modal = document.getElementById('template-modal');
-    const closeButton = document.querySelector('.close-button');
+    const templateModal = document.getElementById('template-modal');
     const modalTitle = document.getElementById('modal-title');
     const modalBody = document.getElementById('modal-body');
     const modalInstallButton = document.getElementById('modal-install-button');
@@ -137,13 +154,10 @@
                 radioLabel.htmlFor = radioId;
                 radioLabel.style.marginLeft = '10px';
 
-                // Build a more descriptive label
                 let labelContent = `<strong>Image:</strong> ${template.image}`;
                 if (template.note) {
-                    // The note can contain HTML, so we leave it as is.
                     labelContent += `<br><small><strong>Note:</strong> ${template.note}</small>`;
                 }
-                // Provide a link to the details page for each specific template
                 labelContent += ` <a href="/app/${template.id}" target="_blank" style="font-weight:normal;">(Details)</a>`;
 
                 radioLabel.innerHTML = labelContent;
@@ -153,19 +167,9 @@
                 modalBody.appendChild(radioWrapper);
             });
 
-            modal.style.display = 'block';
+            templateModal.style.display = 'block';
         });
     });
-
-    closeButton.onclick = function() {
-        modal.style.display = 'none';
-    }
-
-    window.onclick = function(event) {
-        if (event.target == modal) {
-            modal.style.display = 'none';
-        }
-    }
 
     modalInstallButton.addEventListener('click', () => {
         const selectedRadio = document.querySelector('input[name="template_selection"]:checked');
@@ -173,10 +177,38 @@
             const templateId = selectedRadio.value;
             const templateTitle = modalTitle.textContent.replace('Select a template for ', '');
             installApp(templateId, templateTitle, null);
-            modal.style.display = 'none';
+            templateModal.style.display = 'none';
         } else {
             showMessage('Please select a template to install.', 'error');
         }
+    });
+
+    const modals = document.querySelectorAll('.modal');
+    const closeButtons = document.querySelectorAll('.close-button');
+
+    closeButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            button.closest('.modal').style.display = 'none';
+        });
+    });
+
+    window.addEventListener('click', event => {
+        modals.forEach(modal => {
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        });
+    });
+
+    const copyComposeButton = document.getElementById('copy-compose-button');
+    copyComposeButton.addEventListener('click', () => {
+        const composeContent = document.getElementById('compose-content').textContent;
+        navigator.clipboard.writeText(composeContent).then(() => {
+            showMessage('Copied to clipboard!', 'success');
+        }, (err) => {
+            showMessage('Failed to copy!', 'error');
+            console.error('Could not copy text: ', err);
+        });
     });
 </script>
 {% endblock %}

@@ -1,0 +1,3 @@
+INFO:app:DockYard application starting up...
+INFO:app:Flask template_folder set to: ../templates
+INFO:app:Flask static_folder set to: /app/dockyard_app/app/../static
