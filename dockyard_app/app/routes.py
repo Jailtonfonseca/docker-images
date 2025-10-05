@@ -2,7 +2,7 @@ from flask import current_app, Blueprint
 from app import app, bcrypt
 from flask import render_template, jsonify, request, flash, redirect, url_for
 from . import template_manager
-from . import docker_manager
+from . import ai_manager
 from . import config_manager
 from .forms import RegistrationForm, LoginForm
 from .models import User
@@ -90,31 +90,25 @@ def install_app_route():
         return jsonify({"success": False, "message": "Missing template_id in request."}), 400
 
     template_id_to_install = data['template_id']
-    app.logger.info(f"Attempting to install template with ID: '{template_id_to_install}'.")
+    app.logger.info(f"Attempting to generate compose file for template with ID: '{template_id_to_install}'.")
 
     target_template = template_manager.get_template_by_id(template_id_to_install)
 
     if not target_template:
-        app.logger.error(f"Installation Error: Template with ID '{template_id_to_install}' not found in cache.")
+        app.logger.error(f"Generation Error: Template with ID '{template_id_to_install}' not found in cache.")
         return jsonify({"success": False, "message": f"Template '{template_id_to_install}' not found."}), 404
 
     app.logger.info(f"Found template for ID '{template_id_to_install}'. Template details: {json.dumps(target_template, indent=2)}")
 
-    template_type = target_template.get('type')
-    # Stricter check: Only proceed if type is explicitly 2 (integer or string '2')
-    if template_type != 2 and template_type != '2':
-        app.logger.error(f"Installation Error: Template '{target_template.get('title')}' is type '{template_type}', not type 2 (container). This type is not supported for direct container installation by this endpoint.")
-        return jsonify({"success": False, "message": f"Template '{target_template.get('title')}' is type '{template_type}'. Only type 2 (container) templates can be installed via this method."}), 400
+    # Generate compose file using AI
+    compose_file_content, error_message = ai_manager.generate_compose_file(target_template)
 
-    app.logger.info(f"Proceeding with installation for template: {target_template.get('title')} (Type: {template_type})")
-    success, message = docker_manager.install_container_from_template(target_template)
+    if error_message:
+        app.logger.error(f"AI Generation failed for '{target_template.get('title')}': {error_message}")
+        return jsonify({"success": False, "message": error_message})
 
-    if success:
-        app.logger.info(f"Installation successful for '{target_template.get('title')}': {message}")
-    else:
-        app.logger.error(f"Installation failed for '{target_template.get('title')}': {message}")
-
-    return jsonify({"success": success, "message": message})
+    app.logger.info(f"Successfully generated compose file for '{target_template.get('title')}'.")
+    return jsonify({"success": True, "compose_file": compose_file_content})
 
 @app.route('/api/settings/templates/sources', methods=['GET'])
 def get_template_sources_api():

@@ -42,11 +42,12 @@ This guide will help you get DockYard up and running on your system using Docker
 2.  **Configure the Application**
     The `docker-compose.yml` file is the primary way to configure DockYard. Before you start the application, you **must** edit this file to set a secure `SECRET_KEY`.
 
-    Open `docker-compose.yml` and replace `YOUR_UNIQUE_STRONG_SECRET_KEY_HERE` with a long, random string:
+    Open `docker-compose.yml` and replace `YOUR_UNIQUE_STRONG_SECRET_KEY_HERE` with a long, random string. You also need to add your `GOOGLE_API_KEY`:
     ```yaml
     # ...
     environment:
       - SECRET_KEY=YOUR_UNIQUE_STRONG_SECRET_KEY_HERE
+      - GOOGLE_API_KEY=YOUR_GOOGLE_API_KEY
     # ...
     ```
     You can also change the default `TEMPLATE_SOURCES_URL` in this file if you wish.
